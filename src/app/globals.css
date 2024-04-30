@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-// bg from https://www.toptal.com/designers/subtlepatterns/repeated-dark-square-pattern/
+/* // bg from https://www.toptal.com/designers/subtlepatterns/repeated-dark-square-pattern/ */
 
 :root {
   --foreground-rgb: 0, 0, 0;

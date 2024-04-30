@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import RefImage from "./RefImage";
-import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { ReactZoomPanPinchRef, TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface ImagePropType {
@@ -18,11 +18,14 @@ const acceptedFiles = [
 ];
 
 export default function Home() {
+  const defaultWheelStep = 0.4;
   const [fileTransfer, setFileTransfer] = useState<Blob[]>();
   const [imageProps, setImageProps] = useState<ImagePropType[]>([]);
   const [isImageDragging, setIsImageDragging] = useState(true);
   const [idCount, setIdCount] = useState(0);
   const [scale, setScale] = useState(1);
+  const [wheelStep, setWheelStep] = useState(defaultWheelStep);
+  const transformRef = useRef<ReactZoomPanPinchRef>(null);
 
   useEffect(() => {
     console.log(fileTransfer);
@@ -61,6 +64,12 @@ export default function Home() {
     
   }, [fileTransfer]);
 
+  useEffect(() => {
+    setWheelStep(defaultWheelStep * scale);
+    console.log(wheelStep)
+    console.log(scale);
+  }, [scale])
+
   function handleOnDrop(event : any) {
     event.stopPropagation();
     event.preventDefault();
@@ -73,23 +82,34 @@ export default function Home() {
     event.preventDefault();
   }
 
-  function handleImageOnDragStart(event : any) {
+  const handleImageOnDragStart = useCallback((event : any) => {
     setIsImageDragging(true);
-  }
+  }, []);
 
-  function handleImageOnDragEnd(event : any) {
+  const handleImageOnDragEnd = useCallback((event : any) => {
     setIsImageDragging(false);
-  }
+  }, []);
 
   function handleOnTransform(event : any){
     setScale(event.instance.transformState.scale); // output scale factor
   }
 
-  function handleOnDelete(id : number){
+  const handleOnDelete = useCallback((id : number) => {
     console.log("id")
     setImageProps(imageProps.filter((imageProp) => imageProp.id !== id)); // output scale factor
-  }
+    
+  }, []);
   // Order  of array is the arrangement of files
+  useEffect(() => {
+    if(imageProps.length === 0) {
+      if (transformRef.current === null) {
+        return;
+      }
+      transformRef.current.setTransform(0, 0, 1);
+      setIsImageDragging(true);
+      
+    }
+  }, [imageProps.length]);
 
   return (
     <div 
@@ -98,7 +118,16 @@ export default function Home() {
       onDrop={handleOnDrop}
       onDragOver={handleOnDragOver}
       >
-      <TransformWrapper limitToBounds={false} disabled={isImageDragging} minScale={0.20} maxScale={10} onTransformed={handleOnTransform}>
+      <TransformWrapper 
+        limitToBounds={false} 
+        disabled={isImageDragging} 
+        minScale={0.01} 
+        maxScale={10} 
+        onTransformed={handleOnTransform}
+        smooth={false}
+        wheel={{step: wheelStep}}
+        ref={transformRef}
+      >
         <TransformComponent>
           <div id="wrapper" className="h-screen w-screen">
             <AnimatePresence>

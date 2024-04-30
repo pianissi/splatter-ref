@@ -2,16 +2,17 @@
 
 import { DraggableData, Position, ResizableDelta, Rnd } from "react-rnd";
 import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, forwardRef, memo } from "react";
 import classNames from "classnames";
 import { useOnClickOutside } from "usehooks-ts";
+import { set } from "mobx";
 
-export default function RefImage({id, src, onDragStart, onDragStop, scale, onDelete}: { id:number, src: string, onDragStart: any, onDragStop: any, scale: number, onDelete: any}) {
+const RefImage = memo(function RefImage({id, src, onDragStart, onDragStop, scale, onDelete}: { id:number, src: string, onDragStart: any, onDragStop: any, scale: number, onDelete: any}) {
   const [width, setWidth] = useState(500);
   const [height, setHeight] = useState(50);
+  const [imageSize, setImageSize] = useState("33vw");
   const [isRatioLocked, setIsRatioLocked] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
-  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey);
@@ -19,7 +20,11 @@ export default function RefImage({id, src, onDragStart, onDragStop, scale, onDel
     window.addEventListener('keyup', handleKey);
   }, []);
 
-  useOnClickOutside(imageRef, handleUnSelection);
+  // TODO: programmatically figure out optimal scale
+
+  // useEffect(() => {
+  //   console.log(scale);
+  // }, [scale]);
 
   function handleKey(event : any) {
     setIsRatioLocked(event.shiftKey);
@@ -34,13 +39,13 @@ export default function RefImage({id, src, onDragStart, onDragStop, scale, onDel
     onDelete(id);
   }
 
-  function handleOnLoad(event : any) {
-    if (imageRef.current === null) {
-      return;
-    }
-    setHeight(imageRef.current.naturalHeight);
-    setWidth(imageRef.current.naturalWidth);
-  }
+  // function handleOnLoad(event : any) {
+  //   if (imageRef.current === null) {
+  //     return;
+  //   }
+  //   setHeight(imageRef.current.naturalHeight);
+  //   setWidth(imageRef.current.naturalWidth);
+  // }
 
   function handleOnDragStart(event : any) {
     onDragStart(event);
@@ -56,9 +61,9 @@ export default function RefImage({id, src, onDragStart, onDragStop, scale, onDel
     setIsSelected(true);
   }
 
-  function handleUnSelection(event : any) {
+  const handleUnSelection = useCallback((event : any) => {
     setIsSelected(false);
-  }
+  }, []);
 
   function handleOnResizeStop(event: any, dir: any, ref: HTMLElement, delta: ResizableDelta, position: Position) {
     setWidth(parseInt(ref.style.width));
@@ -66,6 +71,7 @@ export default function RefImage({id, src, onDragStart, onDragStop, scale, onDel
   }
 
   // TODO: fix selection on click
+
   return (
     <Rnd
       default={{
@@ -90,14 +96,38 @@ export default function RefImage({id, src, onDragStart, onDragStop, scale, onDel
         }
       )}
     >
-      <Image 
+      <ImageSrc
         src={src}
-        ref={imageRef}
-        fill={true}
-        alt="user reference image"
-        draggable={false}
-        onLoad={handleOnLoad}
-      />
+        setHeight={setHeight}
+        setWidth={setWidth}
+        handleUnSelection={handleUnSelection}
+      ></ImageSrc>
     </Rnd>
   )
-}
+});
+
+const ImageSrc = memo(function ImageSrc({src, setHeight, setWidth, handleUnSelection}: {src:string, setHeight:any, setWidth:any, handleUnSelection:any}) {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const handleOnLoad = useCallback(() => {
+    if (imageRef.current === null) {
+      return;
+    }
+    setHeight(imageRef.current.naturalHeight);
+    setWidth(imageRef.current.naturalWidth);
+  }, []);
+
+  useOnClickOutside(imageRef, handleUnSelection);
+
+  return <Image 
+      src={src}
+      ref={imageRef}
+      fill={true}
+      alt="user reference image"
+      draggable={false}
+      unoptimized={true}
+      sizes="100vw"
+      onLoad={handleOnLoad}
+  />
+});
+
+export default RefImage;
