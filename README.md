@@ -31,3 +31,5 @@ npm run dev
 ```
 
 ## Preview
+
+https://github.com/pianissi/splatter-ref/assets/132866503/58639be1-1a34-49cb-bfd7-0c14dc0dbc59
